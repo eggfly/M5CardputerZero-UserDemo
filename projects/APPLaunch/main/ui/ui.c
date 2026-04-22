@@ -157,7 +157,6 @@ void ui_init(void)
     ui_Screen1_screen_init();
     ui_AppStore_screen_init();
     ui_APPNote_screen_init();
-    ui_pythonapp_screen_init();
     ui_clawapp_screen_init();
     ui_AppStore1_screen_init();
     ui_AppStore1_screen_init1();

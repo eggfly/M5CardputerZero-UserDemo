@@ -53,13 +53,7 @@ public:
     void launch_app()
     {
         auto it = std::next(app_list.begin(), current_app);
-        if (it->Exec == "launch_python")
-        {
-            printf("Launching Python...\n");
-            lv_disp_load_scr(ui_pythonapp);
-            lv_indev_set_group(lv_indev_get_next(NULL), AppPythongroup); // 使用Python应用专用输入组
-        }
-        else if (it->Exec == "launch_store")
+        if (it->Exec == "launch_store")
         {
             // 打开商店界面
             lv_disp_load_scr(ui_AppStore);

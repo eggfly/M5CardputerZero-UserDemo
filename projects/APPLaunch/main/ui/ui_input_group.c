@@ -18,6 +18,5 @@ void input_group_init(void)
     lv_group_add_obj(Screen1group, ui_Screen1);
     lv_group_add_obj(AppStoregroup, ui_AppStore);
     lv_group_add_obj(APPNotegroup, ui_APPNote);
-    lv_group_add_obj(AppPythongroup, ui_pythonapp);
     lv_indev_set_group(lv_indev_get_next(NULL), Screen1group);
 }

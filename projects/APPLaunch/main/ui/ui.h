@@ -48,7 +48,6 @@ void create_dashboard(lv_obj_t *scr);
 void ui_Screen1_screen_init(void);
 void ui_AppStore_screen_init(void);
 void ui_APPNote_screen_init(void);
-void ui_pythonapp_screen_init(void);
 void ui_clawapp_screen_init(void);
 void ui_AppStore1_screen_init(void);
 
