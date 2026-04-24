@@ -113,7 +113,7 @@ static void keypad_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
             if (root) {
                 lv_obj_send_event(root, (lv_event_code_t)LV_EVENT_KEYBOARD, elm);
             }
-            printf("lv_obj_send_event event to root object over\n");
+            // printf("lv_obj_send_event event to root object over\n");
 
             data->key = _evdev_process_key(elm->key_code);
             if(data->key)

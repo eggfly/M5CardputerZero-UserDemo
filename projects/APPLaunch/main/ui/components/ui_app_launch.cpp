@@ -48,6 +48,12 @@ struct app
         std::string exec,
         bool terminal);
 
+    // ① 外部命令
+    app(std::string name,
+        std::string icon,
+        std::string exec,
+        bool terminal, bool sysplause);
+
     // ② 内置 UI 页面
     template <class PageT>
     app(std::string name,
@@ -71,20 +77,20 @@ public:
     app_launch_S()
     {
         app_list.emplace_back("Python",
-                              "A:/dist/images/PYTHON_logo.png", "python3", true);
+                              "A:/dist/images/PYTHON_logo.png", "python3", true, false);
         app_list.emplace_back("STORE",
                               "A:/dist/images/Store_logo.png", page_v<UIStorePage>);
         app_list.emplace_back("CLI",
-                              "A:/dist/images/CLI_logo.png", "bash", true);
+                              "A:/dist/images/CLI_logo.png", "bash", true, false);
         app_list.emplace_back("CLAW",
                               "A:/dist/images/CLAW_logo.png", "/home/pi/zeroclaw agent", true);
         app_list.emplace_back("SETTING",
                               "A:/dist/images/SETTING_logo.png", page_v<UISetupPage>);
         app_list.emplace_back("MUSIC",
                               "A:/dist/images/MUSIC_logo.png", page_v<UIMusicPage>);
-        app_list.emplace_back("NIHAO",
+        app_list.emplace_back("AUDIO_PLAYER",
                               "A:/dist/images/MUSIC_logo.png",
-                              "/home/nihao/w2T/github/M5CardputerZero-UserDemo/projects/UserDemo/nihao",
+                              "tinyplay -D1 -d0 /home/pi/zhou.wav",
                               true);
         app_list.emplace_back("IP_PANEL",
                               "A:/dist/images/ssh.png", page_v<UIIpPanelPage>);
@@ -117,7 +123,7 @@ public:
     }
 
     // 改为接收 std::string，不再依赖 app::Exec 成员
-    void launch_Exec_in_terminal(const std::string &exec)
+    void launch_Exec_in_terminal(const std::string &exec, bool sysplause = true)
     {
         printf("Launching terminal app: %s\n", exec.c_str());
         auto p = std::make_shared<UIConsolePage>();
@@ -125,6 +131,7 @@ public:
         lv_disp_load_scr(p->get_ui());
         lv_indev_set_group(lv_indev_get_next(NULL), p->get_key_group());
         p->go_back_home = std::bind(&app_launch_S::go_back_home, this);
+        p->terminal_sysplause = sysplause;
         p->exec(exec);
     }
 
@@ -279,6 +286,22 @@ inline app::app(std::string name,
     {
         if (terminal)
             ctx->launch_Exec_in_terminal(exec);
+        else
+            ctx->launch_Exec(exec);
+    };
+}
+
+inline app::app(std::string name,
+                std::string icon,
+                std::string exec,
+                bool terminal,
+                bool sysplause)
+    : Name(std::move(name)), Icon(std::move(icon))
+{
+    launch = [exec = std::move(exec), terminal, sysplause](app_launch_S *ctx)
+    {
+        if (terminal)
+            ctx->launch_Exec_in_terminal(exec, sysplause);
         else
             ctx->launch_Exec(exec);
     };

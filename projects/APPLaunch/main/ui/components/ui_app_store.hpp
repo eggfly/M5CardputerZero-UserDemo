@@ -14,6 +14,7 @@ struct store_app_info
 
     std::string class_name;
     std::string description;
+    std::string url;
 };
 
 class UIStorePage : public app_base
@@ -460,10 +461,10 @@ private:
 
     void event_handler(lv_event_t *e)
     {
-        lv_event_code_t event_code = lv_event_get_code(e);
-        if (event_code == LV_EVENT_KEY)
+        // lv_event_code_t event_code = lv_event_get_code(e);
+        if (IS_KEY_RELEASED(e))
         {
-            uint32_t key = lv_event_get_key(e);
+            uint32_t key = LV_EVENT_KEYBOARD_GET_KEY(e);
 
 
             printf("Enter key:%d\n", key);
@@ -474,19 +475,17 @@ private:
                 lv_obj_t *scroll = ui_obj_.count("ui_detail_scroll") ? ui_obj_["ui_detail_scroll"] : nullptr;
                 switch (key)
                 {
-                case LV_KEY_UP:
-                case 'f':
+                case KEY_UP:
                 case KEY_F:
                     if (scroll)
                         lv_obj_scroll_by(scroll, 0, -20, LV_ANIM_ON);
                     break;
-                case LV_KEY_DOWN:
-                case 'x':
+                case KEY_DOWN:
                 case KEY_X:
                     if (scroll)
                         lv_obj_scroll_by(scroll, 0, 20, LV_ANIM_ON);
                     break;
-                case LV_KEY_ESC:
+                case KEY_ESC:
                     hide_detail_panel();
                     break;
                 default:
@@ -498,8 +497,7 @@ private:
             // ---- 主界面模式 ----
             switch (key)
             {
-            case LV_KEY_UP:
-            case 'f':
+            case KEY_UP:
             case KEY_F:
                 {
                     uint16_t sel = lv_roller_get_selected(ui_obj_["ui_roller"]);
@@ -511,8 +509,7 @@ private:
                     }
                 }
                 break;
-            case LV_KEY_DOWN:
-            case 'x':
+            case KEY_DOWN:
             case KEY_X:
                 {
                     uint16_t sel = lv_roller_get_selected(ui_obj_["ui_roller"]);
@@ -525,13 +522,11 @@ private:
                     }
                 }
                 break;
-            case LV_KEY_LEFT:
-            case 'z':
+            case KEY_LEFT:
             case KEY_Z:
                 switch_zuo();
                 break;
-            case LV_KEY_RIGHT:
-            case 'c':
+            case KEY_RIGHT:
             case KEY_C:
                 switch_you();
                 break;
@@ -539,10 +534,10 @@ private:
                 if (!current_list.empty())
                     show_detail_panel();
                 break;
-            case LV_KEY_ENTER:
+            case KEY_ENTER:
                 /* code */
                 break;
-            case LV_KEY_ESC:
+            case KEY_ESC:
                 go_back_home();
                 break;
             default:

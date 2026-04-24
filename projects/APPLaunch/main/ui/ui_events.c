@@ -296,15 +296,12 @@ void go_back_home(lv_event_t * e)
 
 
 #define UI_DEFINE_UI_EVENT_FUN(event_fun, call_fun) void event_fun(lv_event_t * e) { \
-    lv_event_code_t event_code = lv_event_get_code(e); \
-    if(event_code == LV_EVENT_KEY) { \
+    if(IS_KEY_RELEASED(e)) { \
         call_fun(e); \
     } \
 }
 
 UI_DEFINE_UI_EVENT_FUN(ui_event_Screen1, main_key_switch)
-UI_DEFINE_UI_EVENT_FUN(ui_event_AppStore, app_store_switch)
-UI_DEFINE_UI_EVENT_FUN(ui_event_APPNote, app_note_switch)
 
 #undef UI_DEFINE_UI_EVENT_FUN
 
@@ -320,53 +317,41 @@ void main_key_switch(lv_event_t * e)
 {
     // lv_event_code_t event_code = lv_event_get_code(e);
     
-    // if(event_code == LV_EVENT_KEY) {
+    // if(IS_KEY_RELEASED(e)) {
         /* 获取按键值 */
-        uint32_t key = lv_event_get_key(e);
-        // printf("按下: %d\r\n", key);
+        uint32_t key = LV_EVENT_KEYBOARD_GET_KEY(e);
+        printf("按下: %d\r\n", key);
         switch(key) {
-            case LV_KEY_UP:
+            case KEY_UP:
                 // printf("按下: UP\r\n");
                 break;
-            case LV_KEY_DOWN:
+            case KEY_DOWN:
                 // printf("按下: DOWN\r\n");
                 break;
-            case LV_KEY_LEFT:
-            case 'z':
+            case KEY_LEFT:
             case KEY_Z:
                 // printf("按下: LEFT\r\n");
                 switchyou(NULL);
                 break;
-            case LV_KEY_RIGHT:
-            case 'c':
+            case KEY_RIGHT:
             case KEY_C:
                 // printf("按下: RIGHT\r\n");
                 switchzuo(NULL);
                 break;
-            case LV_KEY_ENTER:
-                // printf("按下: ENTER\r\n");
+            case KEY_ENTER:
+                printf("按下: ENTER\r\n");
                 app_launch(NULL);
                 break;
-            case LV_KEY_ESC:
+            case KEY_ESC:
                 // printf("按下: ESC\r\n");
                 break;
             default:
                 // printf("按下: %d\r\n", key);
                 break;
         }
-    
+    // }
 }
 
-void app_note_switch(lv_event_t * e)
-{
-    uint32_t key = lv_event_get_key(e);
-    printf("app_note_switch key: %d\n", key);
 
-    if (key == LV_KEY_ESC) {
-        /* ESC键返回AppStore界面 */
-        go_back_app_store(e);
-        return;
-    }
-}
 
 

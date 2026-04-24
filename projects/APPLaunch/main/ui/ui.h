@@ -17,6 +17,7 @@ extern "C" {
 #include "components/ui_comp_hook.h"
 #include "ui_events.h"
 #include "ui_input_group.h"
+#include "keyboard_input.h"
 
 #define lv_mem_alloc lv_malloc
 #define lv_mem_free   lv_free
@@ -54,6 +55,11 @@ void ui_info_bind();
 
 
 
+
+#define LV_EVENT_KEYBOARD_GET_KEY(e) ((struct key_item *)lv_event_get_param(e))->key_code
+#define LV_EVENT_KEYBOARD_GET_KEY_STATE(e) ((struct key_item *)lv_event_get_param(e))->key_state
+#define IS_KEY_PRESSED(e) ((lv_event_get_code(e) == LV_EVENT_KEYBOARD)&&(LV_EVENT_KEYBOARD_GET_KEY_STATE(e) > 0))
+#define IS_KEY_RELEASED(e) ((lv_event_get_code(e) == LV_EVENT_KEYBOARD)&&(LV_EVENT_KEYBOARD_GET_KEY_STATE(e) == 0))
 
 
 #undef UI_DEFINE_OBJECT

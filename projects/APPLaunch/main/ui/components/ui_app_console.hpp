@@ -34,7 +34,6 @@
 //
 //  对外接口:
 //    exec(std::string cmd)  — 启动一条命令（支持带参数的命令字符串）
-//    handle_key(uint32_t)   — 转发 LV_KEY_* 按键
 // ============================================================
 class UIConsolePage : public app_base
 {
@@ -45,8 +44,8 @@ class UIConsolePage : public app_base
     static constexpr int TERM_H = 150;
     static constexpr int CHAR_W = 7;
     static constexpr int CHAR_H = 12;
-    static constexpr int COLS   = TERM_W / CHAR_W;   /* 45 */
-    static constexpr int ROWS   = TERM_H / CHAR_H;   /* 12 */
+    static constexpr int COLS = TERM_W / CHAR_W; /* 45 */
+    static constexpr int ROWS = TERM_H / CHAR_H; /* 12 */
 
     /* 绿字黑底 */
     static constexpr uint32_t FIXED_FG = 0x00FF00u;
@@ -56,15 +55,18 @@ class UIConsolePage : public app_base
     /*  UI 对象                                                             */
     /* ------------------------------------------------------------------ */
     lv_obj_t *terminal_container = nullptr;
-    lv_obj_t *term_canvas        = nullptr;
+    lv_obj_t *term_canvas = nullptr;
 
     /* 整行渲染：ROWS 个 label 替代大量 cell label */
-    lv_obj_t *row_labels[ROWS]   = {};
+    lv_obj_t *row_labels[ROWS] = {};
     /* 光标：独立一个反色 label，仅创建时设置一次样式 */
-    lv_obj_t *cursor_label       = nullptr;
+    lv_obj_t *cursor_label = nullptr;
 
     /* 行级 dirty 比对缓存（含末尾 '\0'） */
     char row_rendered[ROWS][COLS + 1] = {};
+
+public:
+    bool terminal_sysplause = true;
 
 public:
     UIConsolePage() : app_base()
@@ -77,8 +79,16 @@ public:
     ~UIConsolePage()
     {
         terminal_active = false;
-        if (poll_timer)   { lv_timer_delete(poll_timer);   poll_timer   = nullptr; }
-        if (cursor_timer) { lv_timer_delete(cursor_timer); cursor_timer = nullptr; }
+        if (poll_timer)
+        {
+            lv_timer_delete(poll_timer);
+            poll_timer = nullptr;
+        }
+        if (cursor_timer)
+        {
+            lv_timer_delete(cursor_timer);
+            cursor_timer = nullptr;
+        }
         stop_pty();
     }
 
@@ -91,13 +101,14 @@ public:
      */
     void exec(std::string cmd)
     {
-        if (child_pid > 0) stop_pty();
+        if (child_pid > 0)
+            stop_pty();
 
-        terminal_active     = true;
-        vt100_cur_row       = 0;
-        vt100_cur_col       = 0;
-        vt100_esc_state     = VT100_ESC_NORMAL;
-        vt100_esc_len       = 0;
+        terminal_active = true;
+        vt100_cur_row = 0;
+        vt100_cur_col = 0;
+        vt100_esc_state = VT100_ESC_NORMAL;
+        vt100_esc_len = 0;
         waiting_key_to_exit = false;
 
         vt100_screen_clear_all();
@@ -112,7 +123,8 @@ public:
         while (iss >> token)
             tokens.push_back(token);
 
-        if (tokens.empty()) {
+        if (tokens.empty())
+        {
             const char *err = "Error: empty command\r\n";
             vt100_process_bytes(err, (int)strlen(err));
             vt100_render_all();
@@ -123,7 +135,8 @@ public:
         std::string executable = tokens[0];
         std::vector<std::string> args(tokens.begin() + 1, tokens.end());
 
-        if (!start_pty(executable, args)) {
+        if (!start_pty(executable, args))
+        {
             const char *err = "Error: openpty/fork failed\r\n";
             vt100_process_bytes(err, (int)strlen(err));
             vt100_render_all();
@@ -137,42 +150,32 @@ public:
             cursor_timer = lv_timer_create(UIConsolePage::s_cursor_blink_cb, 500, this);
     }
 
-    /** 转发来自 LV_EVENT_KEY 的按键（LV_KEY_* 值域） */
-    void handle_key(uint32_t key)
-    {
-        if (waiting_key_to_exit) {
-            waiting_key_to_exit = false;
-            if (go_back_home) go_back_home();
-            return;
-        }
-        app_console_handle_lv_key(key);
-    }
-
 private:
     /* ================================================================== */
     /*  VT100 字符网格状态                                                  */
     /* ================================================================== */
     char vt100_screen[ROWS][COLS] = {};
-    int  vt100_cur_row = 0;
-    int  vt100_cur_col = 0;
+    int vt100_cur_row = 0;
+    int vt100_cur_col = 0;
 
-    enum vt100_EscState {
+    enum vt100_EscState
+    {
         VT100_ESC_NORMAL,
         VT100_ESC_ESC,
         VT100_ESC_CSI,
         VT100_ESC_OSC
     };
     vt100_EscState vt100_esc_state = VT100_ESC_NORMAL;
-    char           vt100_esc_buf[64] = {};
-    int            vt100_esc_len     = 0;
+    char vt100_esc_buf[64] = {};
+    int vt100_esc_len = 0;
 
-    int   pty_master = -1;
-    pid_t child_pid  = -1;
+    int pty_master = -1;
+    pid_t child_pid = -1;
 
-    lv_timer_t *poll_timer   = nullptr;
+    lv_timer_t *poll_timer = nullptr;
     lv_timer_t *cursor_timer = nullptr;
-    bool vt100_cursor_vis    = false;
-    bool terminal_active     = false;
+    bool vt100_cursor_vis = false;
+    bool terminal_active = false;
     bool waiting_key_to_exit = false;
 
     /* ================================================================== */
@@ -180,10 +183,10 @@ private:
     /* ================================================================== */
     void console_data_init()
     {
-        memset(vt100_screen,   ' ', sizeof(vt100_screen));
-        memset(row_rendered,    0,   sizeof(row_rendered));
-        memset(row_labels,      0,   sizeof(row_labels));
-        memset(vt100_esc_buf,   0,   sizeof(vt100_esc_buf));
+        memset(vt100_screen, ' ', sizeof(vt100_screen));
+        memset(row_rendered, 0, sizeof(row_rendered));
+        memset(row_labels, 0, sizeof(row_labels));
+        memset(vt100_esc_buf, 0, sizeof(vt100_esc_buf));
     }
 
     /* ================================================================== */
@@ -198,7 +201,7 @@ private:
         lv_obj_set_style_bg_color(terminal_container, lv_color_hex(FIXED_BG), 0);
         lv_obj_set_style_bg_opa(terminal_container, LV_OPA_COVER, 0);
         lv_obj_clear_flag(terminal_container,
-            (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
+                          (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
 
         term_canvas = lv_obj_create(terminal_container);
         lv_obj_set_size(term_canvas, TERM_W, TERM_H);
@@ -209,11 +212,12 @@ private:
         lv_obj_set_style_pad_all(term_canvas, 0, 0);
         lv_obj_set_style_radius(term_canvas, 0, 0);
         lv_obj_remove_flag(term_canvas,
-            (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
+                           (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
 
         /* --------------------- 行级 label ------------------------ */
         const lv_font_t *mono_font = g_font_mono_12 ? g_font_mono_12 : g_font_cn_12;
-        for (int r = 0; r < ROWS; r++) {
+        for (int r = 0; r < ROWS; r++)
+        {
             lv_obj_t *lbl = lv_label_create(term_canvas);
             lv_obj_set_style_text_font(lbl, mono_font, 0);
             lv_obj_set_style_text_color(lbl, lv_color_hex(FIXED_FG), 0);
@@ -255,30 +259,39 @@ private:
     static void static_lvgl_handler(lv_event_t *e)
     {
         UIConsolePage *self = static_cast<UIConsolePage *>(lv_event_get_user_data(e));
-        if (self) self->event_handler(e);
+        if (self)
+            self->event_handler(e);
     }
 
     void event_handler(lv_event_t *e)
     {
-        lv_event_code_t code = lv_event_get_code(e);
-        if (code == LV_EVENT_KEY) {
-            // uint32_t key = lv_event_get_key(e);
-            // handle_key(key);
-        }else if (code == LV_EVENT_KEYBOARD) {
-            struct key_item * elm = (struct key_item *)lv_event_get_param(e);
-            if (waiting_key_to_exit) {
-                waiting_key_to_exit = false;
-                if (go_back_home) go_back_home();
-            } else {
-                if (pty_master >= 0 && terminal_active) {
-                    if (!elm->key_state)
+        if (lv_event_get_code(e) == LV_EVENT_KEYBOARD)
+        {
+            struct key_item *elm = (struct key_item *)lv_event_get_param(e);
+            if (waiting_key_to_exit && (elm->key_state == 0))
+            {
+                if (terminal_sysplause)
+                {
+                    terminal_sysplause = false;
+                }
+                else
+                {
+                    waiting_key_to_exit = false;
+                    if (go_back_home)
+                        go_back_home();
+                }
+            }
+            else
+            {
+                if (pty_master >= 0 && terminal_active)
+                {
+                    if (elm->key_state)
                         write_key_to_pty(elm->key_code, elm->utf8);
                 }
             }
-            printf("Received LV_EVENT_KEYBOARD event: elm=%p\n", elm);
+            printf("Received LV_EVENT_KEYBOARD event: elm=%s\n", elm->sym_name);
         }
     }
-
 
     /* ================================================================== */
     /*  LVGL 定时器静态包装                                                 */
@@ -286,53 +299,34 @@ private:
     static void s_poll_cb(lv_timer_t *t)
     {
         auto self = (UIConsolePage *)lv_timer_get_user_data(t);
-        /* 出队列：读取物理键盘事件 */
-        // {
-        //     pthread_mutex_lock(&keyboard_mutex);
-        //     if (!STAILQ_EMPTY(&keyboard_queue))
-        //     {
-        //         struct key_item *elm = STAILQ_FIRST(&keyboard_queue);
-        //         STAILQ_REMOVE_HEAD(&keyboard_queue, entries);
-
-        //         if (self->waiting_key_to_exit) {
-        //             self->waiting_key_to_exit = false;
-        //             if (self->go_back_home) self->go_back_home();
-        //         } else {
-        //             if (self->pty_master >= 0 && self->terminal_active) {
-        //                 if (!elm->key_state)
-        //                     self->write_key_to_pty(elm->key_code, elm->utf8);
-        //             }
-        //         }
-        //         free(elm);
-        //     }
-        //     pthread_mutex_unlock(&keyboard_mutex);
-        // }
-        if (self) self->vt100_poll_cb(t);
+        if (self)
+            self->vt100_poll_cb(t);
     }
 
     static void s_cursor_blink_cb(lv_timer_t *t)
     {
         auto self = (UIConsolePage *)lv_timer_get_user_data(t);
-        if (self) self->vt100_cursor_blink_cb(t);
+        if (self)
+            self->vt100_cursor_blink_cb(t);
 
         static int end_status = 0;
         static std::chrono::time_point<std::chrono::steady_clock> start_time;
         static std::chrono::time_point<std::chrono::steady_clock> end_time;
         pid_t pid_ret;
-        if(end_status == 0)
+        if (end_status == 0)
         {
-            if(LVGL_HOME_KEY_FLAGE)
+            if (LVGL_HOME_KEY_FLAGE)
             {
                 end_status = 1;
                 start_time = std::chrono::steady_clock::now();
             }
         }
-        if(end_status == 1)
+        if (end_status == 1)
         {
-            if(LVGL_HOME_KEY_FLAGE)
+            if (LVGL_HOME_KEY_FLAGE)
             {
                 end_time = std::chrono::steady_clock::now();
-                if(std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count() >= 5)
+                if (std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count() >= 5)
                 {
                     end_status = 0;
                     kill(self->child_pid, SIGKILL);
@@ -358,9 +352,12 @@ private:
 
     void vt100_clear_row_from(int row, int from_col)
     {
-        if (row < 0 || row >= ROWS) return;
-        if (from_col < 0) from_col = 0;
-        if (from_col >= COLS) return;
+        if (row < 0 || row >= ROWS)
+            return;
+        if (from_col < 0)
+            from_col = 0;
+        if (from_col >= COLS)
+            return;
         memset(&vt100_screen[row][from_col], ' ', COLS - from_col);
     }
 
@@ -373,24 +370,47 @@ private:
 
     void vt100_put_char(char ch)
     {
-        if (ch == '\r') { vt100_cur_col = 0; return; }
-        if (ch == '\n') {
+        if (ch == '\r')
+        {
             vt100_cur_col = 0;
-            if (++vt100_cur_row >= ROWS) { vt100_scroll_up(); vt100_cur_row = ROWS - 1; }
             return;
         }
-        if (ch == '\b') { if (vt100_cur_col > 0) vt100_cur_col--; return; }
-        if (ch == '\t') {
+        if (ch == '\n')
+        {
+            vt100_cur_col = 0;
+            if (++vt100_cur_row >= ROWS)
+            {
+                vt100_scroll_up();
+                vt100_cur_row = ROWS - 1;
+            }
+            return;
+        }
+        if (ch == '\b')
+        {
+            if (vt100_cur_col > 0)
+                vt100_cur_col--;
+            return;
+        }
+        if (ch == '\t')
+        {
             int next_tab = (vt100_cur_col / 4 + 1) * 4;
-            if (next_tab > COLS) next_tab = COLS;
-            while (vt100_cur_col < next_tab) vt100_put_char(' ');
+            if (next_tab > COLS)
+                next_tab = COLS;
+            while (vt100_cur_col < next_tab)
+                vt100_put_char(' ');
             return;
         }
-        if ((unsigned char)ch < 32) return;
+        if ((unsigned char)ch < 32)
+            return;
 
-        if (vt100_cur_col >= COLS) {
+        if (vt100_cur_col >= COLS)
+        {
             vt100_cur_col = 0;
-            if (++vt100_cur_row >= ROWS) { vt100_scroll_up(); vt100_cur_row = ROWS - 1; }
+            if (++vt100_cur_row >= ROWS)
+            {
+                vt100_scroll_up();
+                vt100_cur_row = ROWS - 1;
+            }
         }
         vt100_screen[vt100_cur_row][vt100_cur_col++] = ch;
     }
@@ -400,56 +420,72 @@ private:
     /* ================================================================== */
     void vt100_handle_csi(const char *seq, int len)
     {
-        if (len == 0) return;
+        if (len == 0)
+            return;
         char final = seq[len - 1];
 
         int params[8] = {0};
         int np = 0, cur_num = 0;
         bool has_num = false;
-        for (int i = 0; i < len - 1 && np < 8; i++) {
-            if (seq[i] >= '0' && seq[i] <= '9') {
+        for (int i = 0; i < len - 1 && np < 8; i++)
+        {
+            if (seq[i] >= '0' && seq[i] <= '9')
+            {
                 cur_num = cur_num * 10 + (seq[i] - '0');
                 has_num = true;
-            } else if (seq[i] == ';') {
+            }
+            else if (seq[i] == ';')
+            {
                 params[np++] = cur_num;
                 cur_num = 0;
                 has_num = false;
             }
         }
-        if (has_num) params[np++] = cur_num;
+        if (has_num)
+            params[np++] = cur_num;
         int p0 = (np >= 1) ? params[0] : 0;
         int p1 = (np >= 2) ? params[1] : 0;
 
-        switch (final) {
+        switch (final)
+        {
         case 'A':
             vt100_cur_row -= (p0 ? p0 : 1);
-            if (vt100_cur_row < 0) vt100_cur_row = 0;
+            if (vt100_cur_row < 0)
+                vt100_cur_row = 0;
             break;
         case 'B':
             vt100_cur_row += (p0 ? p0 : 1);
-            if (vt100_cur_row >= ROWS) vt100_cur_row = ROWS - 1;
+            if (vt100_cur_row >= ROWS)
+                vt100_cur_row = ROWS - 1;
             break;
         case 'C':
             vt100_cur_col += (p0 ? p0 : 1);
-            if (vt100_cur_col >= COLS) vt100_cur_col = COLS - 1;
+            if (vt100_cur_col >= COLS)
+                vt100_cur_col = COLS - 1;
             break;
         case 'D':
             vt100_cur_col -= (p0 ? p0 : 1);
-            if (vt100_cur_col < 0) vt100_cur_col = 0;
+            if (vt100_cur_col < 0)
+                vt100_cur_col = 0;
             break;
         case 'H':
         case 'f':
             vt100_cur_row = (p0 > 0 ? p0 - 1 : 0);
             vt100_cur_col = (p1 > 0 ? p1 - 1 : 0);
-            if (vt100_cur_row >= ROWS) vt100_cur_row = ROWS - 1;
-            if (vt100_cur_col >= COLS) vt100_cur_col = COLS - 1;
+            if (vt100_cur_row >= ROWS)
+                vt100_cur_row = ROWS - 1;
+            if (vt100_cur_col >= COLS)
+                vt100_cur_col = COLS - 1;
             break;
         case 'J':
-            if (p0 == 2 || p0 == 3) {
+            if (p0 == 2 || p0 == 3)
+            {
                 vt100_screen_clear_all();
                 vt100_cur_row = 0;
                 vt100_cur_col = 0;
-            } else if (p0 == 0) {
+            }
+            else if (p0 == 0)
+            {
                 vt100_clear_row_from(vt100_cur_row, vt100_cur_col);
                 for (int r = vt100_cur_row + 1; r < ROWS; r++)
                     vt100_clear_row_from(r, 0);
@@ -458,7 +494,8 @@ private:
         case 'K':
             if (p0 == 0)
                 vt100_clear_row_from(vt100_cur_row, vt100_cur_col);
-            else if (p0 == 1) {
+            else if (p0 == 1)
+            {
                 for (int c = 0; c <= vt100_cur_col && c < COLS; c++)
                     vt100_screen[vt100_cur_row][c] = ' ';
             }
@@ -475,32 +512,52 @@ private:
     /* ================================================================== */
     void vt100_process_bytes(const char *data, int len)
     {
-        for (int i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++)
+        {
             unsigned char c = (unsigned char)data[i];
-            switch (vt100_esc_state) {
+            switch (vt100_esc_state)
+            {
             case VT100_ESC_NORMAL:
-                if (c == 0x1b) { vt100_esc_state = VT100_ESC_ESC; vt100_esc_len = 0; }
-                else vt100_put_char((char)c);
+                if (c == 0x1b)
+                {
+                    vt100_esc_state = VT100_ESC_ESC;
+                    vt100_esc_len = 0;
+                }
+                else
+                    vt100_put_char((char)c);
                 break;
             case VT100_ESC_ESC:
-                if (c == '[') { vt100_esc_state = VT100_ESC_CSI; vt100_esc_len = 0; }
-                else if (c == ']') { vt100_esc_state = VT100_ESC_OSC; vt100_esc_len = 0; }
-                else if (c == 'c') {
+                if (c == '[')
+                {
+                    vt100_esc_state = VT100_ESC_CSI;
+                    vt100_esc_len = 0;
+                }
+                else if (c == ']')
+                {
+                    vt100_esc_state = VT100_ESC_OSC;
+                    vt100_esc_len = 0;
+                }
+                else if (c == 'c')
+                {
                     vt100_screen_clear_all();
                     vt100_cur_row = 0;
                     vt100_cur_col = 0;
                     vt100_esc_state = VT100_ESC_NORMAL;
                 }
-                else vt100_esc_state = VT100_ESC_NORMAL;
+                else
+                    vt100_esc_state = VT100_ESC_NORMAL;
                 break;
             case VT100_ESC_OSC:
-                if (c == 0x07) vt100_esc_state = VT100_ESC_NORMAL;
-                else if (c == 0x1b) vt100_esc_state = VT100_ESC_ESC;
+                if (c == 0x07)
+                    vt100_esc_state = VT100_ESC_NORMAL;
+                else if (c == 0x1b)
+                    vt100_esc_state = VT100_ESC_ESC;
                 break;
             case VT100_ESC_CSI:
                 if (vt100_esc_len < (int)(sizeof(vt100_esc_buf) - 1))
                     vt100_esc_buf[vt100_esc_len++] = (char)c;
-                if (c >= 0x40 && c <= 0x7E) {
+                if (c >= 0x40 && c <= 0x7E)
+                {
                     vt100_esc_buf[vt100_esc_len] = '\0';
                     vt100_handle_csi(vt100_esc_buf, vt100_esc_len);
                     vt100_esc_state = VT100_ESC_NORMAL;
@@ -517,13 +574,15 @@ private:
     static inline char sanitize_ch(char ch)
     {
         unsigned char c = (unsigned char)ch;
-        if (c < 32 || c > 126) return ' ';
+        if (c < 32 || c > 126)
+            return ' ';
         return (char)c;
     }
 
     void vt100_render_row(int r)
     {
-        if (r < 0 || r >= ROWS) return;
+        if (r < 0 || r >= ROWS)
+            return;
 
         char buf[COLS + 1];
         for (int c = 0; c < COLS; c++)
@@ -547,16 +606,21 @@ private:
     /** 仅更新光标 label 的位置与字符，不改变显示/隐藏状态 */
     void update_cursor_position_only()
     {
-        if (!cursor_label) return;
+        if (!cursor_label)
+            return;
         int row = vt100_cur_row;
         int col = vt100_cur_col;
-        if (row < 0) row = 0;
-        if (row >= ROWS) row = ROWS - 1;
-        if (col < 0) col = 0;
-        if (col >= COLS) col = COLS - 1;
+        if (row < 0)
+            row = 0;
+        if (row >= ROWS)
+            row = ROWS - 1;
+        if (col < 0)
+            col = 0;
+        if (col >= COLS)
+            col = COLS - 1;
 
         char under = sanitize_ch(vt100_screen[row][col]);
-        char s[2]  = { under == ' ' ? ' ' : under, '\0' };
+        char s[2] = {under == ' ' ? ' ' : under, '\0'};
         const char *old = lv_label_get_text(cursor_label);
         if (!old || old[0] != s[0] || old[1] != s[1])
             lv_label_set_text(cursor_label, s);
@@ -566,11 +630,15 @@ private:
 
     void show_cursor(bool show)
     {
-        if (!cursor_label) return;
-        if (show) {
+        if (!cursor_label)
+            return;
+        if (show)
+        {
             if (lv_obj_has_flag(cursor_label, LV_OBJ_FLAG_HIDDEN))
                 lv_obj_clear_flag(cursor_label, LV_OBJ_FLAG_HIDDEN);
-        } else {
+        }
+        else
+        {
             if (!lv_obj_has_flag(cursor_label, LV_OBJ_FLAG_HIDDEN))
                 lv_obj_add_flag(cursor_label, LV_OBJ_FLAG_HIDDEN);
         }
@@ -580,21 +648,27 @@ private:
     /* ================================================================== */
     /*  PTY 管理                                                            */
     /* ================================================================== */
-    bool start_pty(const std::string& cmd, const std::vector<std::string>& args = {})
+    bool start_pty(const std::string &cmd, const std::vector<std::string> &args = {})
     {
         int master, slave;
         struct winsize ws;
-        ws.ws_col    = COLS;
-        ws.ws_row    = ROWS;
+        ws.ws_col = COLS;
+        ws.ws_row = ROWS;
         ws.ws_xpixel = TERM_W;
         ws.ws_ypixel = TERM_H;
         if (openpty(&master, &slave, NULL, NULL, &ws) < 0)
             return false;
 
         pid_t pid = fork();
-        if (pid < 0) { close(master); close(slave); return false; }
+        if (pid < 0)
+        {
+            close(master);
+            close(slave);
+            return false;
+        }
 
-        if (pid == 0) {
+        if (pid == 0)
+        {
             setsid();
             dup2(slave, STDIN_FILENO);
             dup2(slave, STDOUT_FILENO);
@@ -617,7 +691,7 @@ private:
 
         close(slave);
         pty_master = master;
-        child_pid  = pid;
+        child_pid = pid;
         int flags = fcntl(pty_master, F_GETFL, 0);
         fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
         return true;
@@ -625,8 +699,13 @@ private:
 
     void stop_pty()
     {
-        if (pty_master >= 0) { close(pty_master); pty_master = -1; }
-        if (child_pid > 0) {
+        if (pty_master >= 0)
+        {
+            close(pty_master);
+            pty_master = -1;
+        }
+        if (child_pid > 0)
+        {
             kill(child_pid, SIGTERM);
             waitpid(child_pid, NULL, 0);
             child_pid = -1;
@@ -639,14 +718,16 @@ private:
     void vt100_poll_cb(lv_timer_t *t)
     {
         (void)t;
-        if (pty_master < 0 || !terminal_active) return;
+        if (pty_master < 0 || !terminal_active)
+            return;
 
         char buf[1024];
         ssize_t n;
-        bool changed  = false;
+        bool changed = false;
         int read_errno = 0;
 
-        while ((n = read(pty_master, buf, sizeof(buf))) > 0) {
+        while ((n = read(pty_master, buf, sizeof(buf))) > 0)
+        {
             vt100_process_bytes(buf, (int)n);
             changed = true;
         }
@@ -656,34 +737,45 @@ private:
             vt100_render_all();
 
         bool child_exited = false;
-        if (n < 0 && read_errno == EIO) {
+        if (n < 0 && read_errno == EIO)
+        {
             child_exited = true;
-        } else if (child_pid > 0) {
+        }
+        else if (child_pid > 0)
+        {
             int status = 0;
-            if (waitpid(child_pid, &status, WNOHANG) == child_pid) {
-                child_pid    = -1;
+            if (waitpid(child_pid, &status, WNOHANG) == child_pid)
+            {
+                child_pid = -1;
                 child_exited = true;
             }
         }
 
-        if (child_exited) {
+        if (child_exited)
+        {
             terminal_active = false;
             const char *hint = "\r\n-- Press any key to exit --";
             vt100_process_bytes(hint, (int)strlen(hint));
             vt100_render_all();
             waiting_key_to_exit = true;
-            if (pty_master >= 0) { close(pty_master); pty_master = -1; }
+            if (pty_master >= 0)
+            {
+                close(pty_master);
+                pty_master = -1;
+            }
         }
     }
 
     void vt100_cursor_blink_cb(lv_timer_t *t)
     {
         (void)t;
-        if (!cursor_label) return;
+        if (!cursor_label)
+            return;
 
         update_cursor_position_only();
 
-        if (!terminal_active) {
+        if (!terminal_active)
+        {
             show_cursor(false);
             return;
         }
@@ -702,18 +794,49 @@ private:
      */
     void write_key_to_pty(uint32_t evdev_key, const char *utf8_str)
     {
-        if (!terminal_active || pty_master < 0) return;
+        if (!terminal_active || pty_master < 0)
+            return;
         char buf[8];
-        int  len = 0;
+        int len = 0;
 
-        switch (evdev_key) {
-        case 28:  buf[0] = '\r';  len = 1; break;               /* KEY_ENTER      */
-        case 14:  buf[0] = 0x7f;  len = 1; break;               /* KEY_BACKSPACE  */
-        case 1:   buf[0] = 0x1b;  len = 1; break;               /* KEY_ESC        */
-        case 103: buf[0]=0x1b; buf[1]='['; buf[2]='A'; len=3; break; /* KEY_UP    */
-        case 108: buf[0]=0x1b; buf[1]='['; buf[2]='B'; len=3; break; /* KEY_DOWN  */
-        case 106: buf[0]=0x1b; buf[1]='['; buf[2]='C'; len=3; break; /* KEY_RIGHT */
-        case 105: buf[0]=0x1b; buf[1]='['; buf[2]='D'; len=3; break; /* KEY_LEFT  */
+        switch (evdev_key)
+        {
+        case 28:
+            buf[0] = '\r';
+            len = 1;
+            break; /* KEY_ENTER      */
+        case 14:
+            buf[0] = 0x7f;
+            len = 1;
+            break; /* KEY_BACKSPACE  */
+        case 1:
+            buf[0] = 0x1b;
+            len = 1;
+            break; /* KEY_ESC        */
+        case 103:
+            buf[0] = 0x1b;
+            buf[1] = '[';
+            buf[2] = 'A';
+            len = 3;
+            break; /* KEY_UP    */
+        case 108:
+            buf[0] = 0x1b;
+            buf[1] = '[';
+            buf[2] = 'B';
+            len = 3;
+            break; /* KEY_DOWN  */
+        case 106:
+            buf[0] = 0x1b;
+            buf[1] = '[';
+            buf[2] = 'C';
+            len = 3;
+            break; /* KEY_RIGHT */
+        case 105:
+            buf[0] = 0x1b;
+            buf[1] = '[';
+            buf[2] = 'D';
+            len = 3;
+            break; /* KEY_LEFT  */
         default:
             len = (int)strlen(utf8_str);
             if (len > 0 && len <= (int)sizeof(buf))
@@ -723,26 +846,73 @@ private:
             break;
         }
 
-        if (len > 0) write(pty_master, buf, (size_t)len);
+        if (len > 0)
+            write(pty_master, buf, (size_t)len);
     }
 
     /** 将 LVGL LV_KEY_* 按键转为终端字节序列写入 PTY */
     void app_console_handle_lv_key(uint32_t key)
     {
-        if (!terminal_active || pty_master < 0) return;
+        if (!terminal_active || pty_master < 0)
+            return;
         char buf[8];
-        int  len = 0;
+        int len = 0;
 
-        if      (key == LV_KEY_ENTER)     { buf[0] = '\r';  len = 1; }
-        else if (key == LV_KEY_BACKSPACE) { buf[0] = 0x7f;  len = 1; }
-        else if (key == LV_KEY_ESC)       { buf[0] = 0x1b;  len = 1; }
-        else if (key == LV_KEY_UP)        { buf[0]=0x1b; buf[1]='['; buf[2]='A'; len=3; }
-        else if (key == LV_KEY_DOWN)      { buf[0]=0x1b; buf[1]='['; buf[2]='B'; len=3; }
-        else if (key == LV_KEY_RIGHT)     { buf[0]=0x1b; buf[1]='['; buf[2]='C'; len=3; }
-        else if (key == LV_KEY_LEFT)      { buf[0]=0x1b; buf[1]='['; buf[2]='D'; len=3; }
-        else if (key >= 32 && key <= 126) { buf[0] = (char)key; len = 1; }
-        else if (key < 32)                { buf[0] = (char)key; len = 1; }
+        if (key == LV_KEY_ENTER)
+        {
+            buf[0] = '\r';
+            len = 1;
+        }
+        else if (key == LV_KEY_BACKSPACE)
+        {
+            buf[0] = 0x7f;
+            len = 1;
+        }
+        else if (key == LV_KEY_ESC)
+        {
+            buf[0] = 0x1b;
+            len = 1;
+        }
+        else if (key == LV_KEY_UP)
+        {
+            buf[0] = 0x1b;
+            buf[1] = '[';
+            buf[2] = 'A';
+            len = 3;
+        }
+        else if (key == LV_KEY_DOWN)
+        {
+            buf[0] = 0x1b;
+            buf[1] = '[';
+            buf[2] = 'B';
+            len = 3;
+        }
+        else if (key == LV_KEY_RIGHT)
+        {
+            buf[0] = 0x1b;
+            buf[1] = '[';
+            buf[2] = 'C';
+            len = 3;
+        }
+        else if (key == LV_KEY_LEFT)
+        {
+            buf[0] = 0x1b;
+            buf[1] = '[';
+            buf[2] = 'D';
+            len = 3;
+        }
+        else if (key >= 32 && key <= 126)
+        {
+            buf[0] = (char)key;
+            len = 1;
+        }
+        else if (key < 32)
+        {
+            buf[0] = (char)key;
+            len = 1;
+        }
 
-        if (len > 0) write(pty_master, buf, (size_t)len);
+        if (len > 0)
+            write(pty_master, buf, (size_t)len);
     }
 };

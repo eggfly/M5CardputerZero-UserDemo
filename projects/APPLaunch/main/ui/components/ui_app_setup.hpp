@@ -477,13 +477,14 @@ private:
     }
     void event_handler(lv_event_t *e)
     {
-        if (lv_event_get_code(e) != LV_EVENT_KEY) return;
-        uint32_t key = lv_event_get_key(e);
-
-        switch (view_state_)
+        if(IS_KEY_RELEASED(e))
         {
-        case ViewState::MAIN: handle_main_key(key); break;
-        case ViewState::SUB:  handle_sub_key(key);  break;
+            uint32_t key = LV_EVENT_KEYBOARD_GET_KEY(e);
+            switch (view_state_)
+            {
+            case ViewState::MAIN: handle_main_key(key); break;
+            case ViewState::SUB:  handle_sub_key(key);  break;
+            }
         }
     }
 
@@ -495,7 +496,7 @@ private:
         int count = (int)menu_items_.size();
         switch (key)
         {
-        case LV_KEY_UP:
+        case KEY_UP:
             if (selected_idx_ > 0)
             {
                 --selected_idx_;
@@ -503,7 +504,7 @@ private:
             }
             break;
 
-        case LV_KEY_DOWN:
+        case KEY_DOWN:
             if (selected_idx_ < count - 1)
             {
                 ++selected_idx_;
@@ -511,12 +512,12 @@ private:
             }
             break;
 
-        case LV_KEY_ENTER:
-        case LV_KEY_RIGHT:
+        case KEY_ENTER:
+        case KEY_RIGHT:
             open_sub_page(selected_idx_);
             break;
 
-        case LV_KEY_ESC:
+        case KEY_ESC:
             if (go_back_home) go_back_home();
             break;
 
@@ -535,7 +536,7 @@ private:
         if (item.on_sub_key)
         {
             item.on_sub_key(key);
-            if (key == LV_KEY_ESC)
+            if (key == KEY_ESC)
                 close_sub_page();
             return;
         }
@@ -543,17 +544,17 @@ private:
         lv_obj_t *content = ui_obj_.count("sub_content") ? ui_obj_["sub_content"] : nullptr;
         switch (key)
         {
-        case LV_KEY_UP:
+        case KEY_UP:
             if (content)
                 lv_obj_scroll_by(content, 0, -20, LV_ANIM_ON);
             break;
 
-        case LV_KEY_DOWN:
+        case KEY_DOWN:
             if (content)
                 lv_obj_scroll_by(content, 0, 20, LV_ANIM_ON);
             break;
 
-        case LV_KEY_ESC:
+        case KEY_ESC:
             close_sub_page();
             break;
 
