@@ -2,12 +2,30 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/wait.h>
 #include <fcntl.h>
+#ifdef __linux__
+#include <sys/wait.h>
 #include <linux/fb.h>
 #include <sys/ioctl.h>
 #include <dirent.h>
 #include <sys/inotify.h>
+#else
+// macOS/Windows stubs
+#include <sys/wait.h>
+#include <sys/ioctl.h>
+#include <dirent.h>
+#define IN_NONBLOCK    0
+#define IN_CREATE      0x00000100
+#define IN_DELETE      0x00000200
+#define IN_MOVED_TO    0x00000080
+#define IN_MOVED_FROM  0x00000040
+#define IN_MODIFY      0x00000002
+#define IN_CLOSE_WRITE 0x00000008
+#define NAME_MAX       255
+struct inotify_event { int wd; uint32_t mask; uint32_t cookie; uint32_t len; char name[]; };
+static inline int inotify_init1(int) { return -1; }
+static inline int inotify_add_watch(int, const char*, uint32_t) { return -1; }
+#endif
 #include <unordered_map>
 #include <list>
 #include <memory>

@@ -5,7 +5,7 @@
 #include <list>
 #include <set>
 #include <iostream>
-#include <linux/input.h>
+#include "compat/input_keys.h"
 struct store_app_info
 {
     std::string name;

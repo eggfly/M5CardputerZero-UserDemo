@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include "ui/ui.h"
 #include "keyboard_input.h"
-#include <linux/input.h>
+#include "compat/input_keys.h"
 #include <cstring>
 // #include "ui/inter_process_comms.h"
 

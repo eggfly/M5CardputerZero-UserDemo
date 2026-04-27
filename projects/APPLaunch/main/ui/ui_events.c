@@ -1,7 +1,7 @@
 #include "ui.h"
 #include <stdio.h>
 #include <string.h>
-#include <linux/input.h>
+#include "compat/input_keys.h"
 
 
 
