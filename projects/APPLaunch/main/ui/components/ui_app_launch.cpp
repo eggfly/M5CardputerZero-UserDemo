@@ -6,12 +6,16 @@
 #include <fcntl.h>
 #include <linux/fb.h>
 #include <sys/ioctl.h>
+#include <dirent.h>
+#include <sys/inotify.h>
 #include <unordered_map>
 #include <list>
 #include <memory>
 #include <string>
 #include <functional>
 #include <chrono>
+#include <fstream>
+#include <sstream>
 #include "ui_launch_page.hpp"
 #include "ui_app_store.hpp"
 #include "ui_app_music.hpp"
@@ -19,6 +23,22 @@
 #include "ui_app_console.hpp"
 #include "ui_app_IpPanel.hpp"
 #include "ui_app_stock.hpp"
+
+// ============================================================
+// 启动快捷方式示例
+// ============================================================
+/*
+root@pi:/home/pi# cat /usr/share/APPLaunch/applications/vim.desktop
+[Desktop Entry]
+Name=Vim
+TryExec=vim
+Exec=vim
+Terminal=true
+Icon=share/images/email.png
+*/
+
+
+
 
 // 前向声明
 class app_launch_S;
@@ -41,6 +61,7 @@ struct app
 {
     std::string Name;
     std::string Icon;
+    std::string Exec;
     std::function<void(app_launch_S *)> launch;
 
     // ① 外部命令
@@ -68,10 +89,12 @@ struct app
 class app_launch_S
 {
 private:
-    std::list<app> app_list;
     int current_app = 2;
+    int inotify_fd  = -1; // inotify 实例句柄
+    lv_timer_t *watch_timer = nullptr; // LVGL 3s 定时器
 
 public:
+    std::list<app> app_list;
     std::shared_ptr<void> app_Page;
 
 public:
@@ -79,38 +102,74 @@ public:
     {
         // 固定图标，不允许用户修改
         app_list.emplace_back("Python",
-                              "A:/dist/images/PYTHON_logo.png", "python3", true, false);
+                              "share/images/PYTHON_logo.png", "python3", true, false);
         app_list.emplace_back("STORE",
-                              "A:/dist/images/Store_logo.png", page_v<UIStorePage>);
+                              "share/images/Store_logo.png", page_v<UIStorePage>);
         app_list.emplace_back("CLI",
-                              "A:/dist/images/CLI_logo.png", "bash", true, false);
+                              "share/images/CLI_logo.png", "bash", true, false);
         app_list.emplace_back("CLAW",
-                              "A:/dist/images/CLAW_logo.png", "/home/pi/zeroclaw agent", true);
+                              "share/images/CLAW_logo.png", "/home/pi/zeroclaw agent", true);
         app_list.emplace_back("SETTING",
-                              "A:/dist/images/SETTING_logo.png", page_v<UISetupPage>);
+                              "share/images/SETTING_logo.png", page_v<UISetupPage>);
+
+        {
+            auto it = std::next(app_list.begin(), 0);
+            lv_label_set_text(ui_zuoLabelout, it->Name.c_str());
+            lv_obj_set_style_bg_img_src(ui_outPanelzuo, it->Icon.c_str(),
+                                        LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            auto it = std::next(app_list.begin(), 1);
+            lv_label_set_text(ui_zuoLabel, it->Name.c_str());
+            lv_obj_set_style_bg_img_src(ui_zuoPanel, it->Icon.c_str(),
+                                        LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            auto it = std::next(app_list.begin(), 2);
+            lv_label_set_text(ui_switchLabel, it->Name.c_str());
+            lv_obj_set_style_bg_img_src(ui_switchPanel, it->Icon.c_str(),
+                                        LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            auto it = std::next(app_list.begin(), 3);
+            lv_label_set_text(ui_youLabel, it->Name.c_str());
+            lv_obj_set_style_bg_img_src(ui_youPanel, it->Icon.c_str(),
+                                        LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            auto it = std::next(app_list.begin(), 4);
+            lv_label_set_text(ui_youLabelout, it->Name.c_str());
+            lv_obj_set_style_bg_img_src(ui_outPanelyou, it->Icon.c_str(),
+                                        LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
 
 
         // 动态图标，允许用户自定义
         app_list.emplace_back("MUSIC",
-                              "A:/dist/images/MUSIC_logo.png", page_v<UIMusicPage>);
+                              "share/images/MUSIC_logo.png", page_v<UIMusicPage>);
         app_list.emplace_back("AUDIO_PLAYER",
-                              "A:/dist/images/MUSIC_logo.png",
+                              "share/images/MUSIC_logo.png",
                               "tinyplay -D1 -d0 /home/pi/zhou.wav",
                               true);
         app_list.emplace_back("IP_PANEL",
-                              "A:/dist/images/ssh.png", page_v<UIIpPanelPage>);
+                              "share/images/ssh.png", page_v<UIIpPanelPage>);
 
         app_list.emplace_back("MATH",
-                              "A:/dist/images/math.png", 
+                              "share/images/math.png", 
                               "/home/pi/M5CardputerZero-Calculator-linux-aarch64", false);
 
 
         app_list.emplace_back("STOCKS",
-                              "A:/dist/images/stocks_macos_bigsur_icon_189691.png", page_v<UIStockPage>);
+                              "share/images/stocks_macos_bigsur_icon_189691.png", page_v<UIStockPage>);
 
 
+        applications_load();
 
-                              
+        // 初始化 inotify，监听 applications 目录
+        inotify_init_watch();
+
+        // 创建 LVGL 3s 定时器，周期性检查目录变化
+        watch_timer = lv_timer_create(app_dir_watch_cb, 3000, this);
     }
 
     void launch_app()
@@ -259,6 +318,7 @@ public:
         LVGL_RUN_FLAGE = 1;
     }
 
+
     void zuo(lv_obj_t *panel, lv_obj_t *label)
     {
         current_app = current_app == (int)app_list.size() - 1 ? 0 : current_app + 1;
@@ -283,7 +343,260 @@ public:
                                     LV_PART_MAIN | LV_STATE_DEFAULT);
     }
 
-    ~app_launch_S() {}
+    void applications_load()
+    {
+        const char *app_dir = "/usr/share/APPLaunch/applications";
+        DIR *dir = opendir(app_dir);
+        if (!dir)
+        {
+            perror("applications_load: opendir failed");
+            return;
+        }
+
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL)
+        {
+            // 仅处理 *.desktop 文件
+            const char *name = entry->d_name;
+            size_t len = strlen(name);
+            if (len <= 8 || strcmp(name + len - 8, ".desktop") != 0)
+                continue;
+
+            std::string filepath = std::string(app_dir) + "/" + name;
+            std::ifstream ifs(filepath);
+            if (!ifs.is_open())
+            {
+                fprintf(stderr, "applications_load: cannot open %s\n", filepath.c_str());
+                continue;
+            }
+
+            // 解析 INI 文件
+            std::string app_name, app_icon, app_exec;
+            bool app_terminal = false;
+            bool app_sysplause = true;
+            bool in_desktop_entry = false;
+
+            std::string line;
+            while (std::getline(ifs, line))
+            {
+                // 去除行尾的 \r（Windows 换行符）
+                if (!line.empty() && line.back() == '\r')
+                    line.pop_back();
+
+                // 跳过空行和注释
+                if (line.empty() || line[0] == '#' || line[0] == ';')
+                    continue;
+
+                // 检测节头
+                if (line[0] == '[')
+                {
+                    in_desktop_entry = (line == "[Desktop Entry]");
+                    continue;
+                }
+
+                if (!in_desktop_entry)
+                    continue;
+
+                // 解析 key=value
+                auto eq = line.find('=');
+                if (eq == std::string::npos)
+                    continue;
+
+                std::string key   = line.substr(0, eq);
+                std::string value = line.substr(eq + 1);
+
+                // 去除 key 首尾空格
+                auto ltrim = [](std::string &s) {
+                    size_t i = 0;
+                    while (i < s.size() && (s[i] == ' ' || s[i] == '\t')) ++i;
+                    s = s.substr(i);
+                };
+                auto rtrim = [](std::string &s) {
+                    while (!s.empty() && (s.back() == ' ' || s.back() == '\t'))
+                        s.pop_back();
+                };
+                ltrim(key); rtrim(key);
+                ltrim(value); rtrim(value);
+
+                if (key == "Name")
+                    app_name = value;
+                else if (key == "Icon")
+                    app_icon = value;
+                else if (key == "Exec")
+                    app_exec = value;
+                else if (key == "Terminal")
+                    app_terminal = (value == "true" || value == "True" || value == "1");
+                else if (key == "Sysplause")
+                    app_sysplause = (value == "true" || value == "True" || value == "1");
+            }
+
+            // 必须有 Name 和 Exec 才能注册
+            if (app_name.empty() || app_exec.empty())
+            {
+                fprintf(stderr, "applications_load: skip %s (missing Name or Exec)\n", filepath.c_str());
+                continue;
+            }
+            bool in_list = false;
+            for(auto it: app_list)
+            {
+                if(it.Exec == app_exec)
+                {
+                    in_list = true;
+                    break;
+                }
+            }
+            if(in_list)
+            {
+                fprintf(stderr, "applications_load: skip %s (duplicate Exec)\n", filepath.c_str());
+                continue;
+            }
+                
+            app_list.emplace_back(app_name, app_icon, app_exec, app_terminal, app_sysplause);
+        }
+
+        closedir(dir);
+    }
+
+    // ============================================================
+    // inotify 初始化：以非阻塞模式监听 applications 目录
+    // ============================================================
+    void inotify_init_watch()
+    {
+        const char *app_dir = "/usr/share/APPLaunch/applications";
+        inotify_fd = inotify_init1(IN_NONBLOCK);
+        if (inotify_fd < 0)
+        {
+            perror("inotify_init1 failed");
+            return;
+        }
+        if (inotify_add_watch(inotify_fd, app_dir,
+                              IN_CREATE | IN_DELETE | IN_MODIFY |
+                              IN_MOVED_FROM | IN_MOVED_TO | IN_CLOSE_WRITE) < 0)
+        {
+            perror("inotify_add_watch failed");
+            close(inotify_fd);
+            inotify_fd = -1;
+        }
+    }
+
+    // ============================================================
+    // 刷新 UI 面板（根据当前 current_app 更新 5 个槽位）
+    // ============================================================
+    void refresh_ui_panels()
+    {
+        int sz = (int)app_list.size();
+        if (sz == 0) return;
+
+        // 确保 current_app 在合法范围内
+        if (current_app >= sz)
+            current_app = sz - 1;
+
+        auto app_at = [&](int idx) -> app & {
+            idx = ((idx % sz) + sz) % sz;
+            return *std::next(app_list.begin(), idx);
+        };
+
+        // 最左外（隐藏）
+        {
+            auto &a = app_at(current_app - 2);
+            lv_label_set_text(ui_zuoLabelout, a.Name.c_str());
+            lv_obj_set_style_bg_img_src(ui_outPanelzuo, a.Icon.c_str(),
+                                        LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        // 左
+        {
+            auto &a = app_at(current_app - 1);
+            lv_label_set_text(ui_zuoLabel, a.Name.c_str());
+            lv_obj_set_style_bg_img_src(ui_zuoPanel, a.Icon.c_str(),
+                                        LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        // 中心
+        {
+            auto &a = app_at(current_app);
+            lv_label_set_text(ui_switchLabel, a.Name.c_str());
+            lv_obj_set_style_bg_img_src(ui_switchPanel, a.Icon.c_str(),
+                                        LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        // 右
+        {
+            auto &a = app_at(current_app + 1);
+            lv_label_set_text(ui_youLabel, a.Name.c_str());
+            lv_obj_set_style_bg_img_src(ui_youPanel, a.Icon.c_str(),
+                                        LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        // 最右外（隐藏）
+        {
+            auto &a = app_at(current_app + 2);
+            lv_label_set_text(ui_youLabelout, a.Name.c_str());
+            lv_obj_set_style_bg_img_src(ui_outPanelyou, a.Icon.c_str(),
+                                        LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+    }
+
+    // ============================================================
+    // 重新加载动态应用列表（保留固定条目，重扫描 applications 目录）
+    // ============================================================
+    void applications_reload()
+    {
+        // 固定条目数量（Python/STORE/CLI/CLAW/SETTING/MUSIC/AUDIO_PLAYER/IP_PANEL/MATH/STOCKS）
+        // 即构造函数中 applications_load() 之前加入的条目
+        const int fixed_count = 10;
+        int sz = (int)app_list.size();
+        if (sz > fixed_count)
+        {
+            auto it = std::next(app_list.begin(), fixed_count);
+            app_list.erase(it, app_list.end());
+        }
+        applications_load();
+        refresh_ui_panels();
+    }
+
+    // ============================================================
+    // LVGL 定时器回调：检测 inotify 事件，有变化则刷新列表
+    // ============================================================
+    static void app_dir_watch_cb(lv_timer_t *timer)
+    {
+        auto *self = static_cast<app_launch_S *>(lv_timer_get_user_data(timer));
+        if (!self || self->inotify_fd < 0)
+            return;
+
+        // 读取所有待处理事件（非阻塞）
+        char buf[sizeof(struct inotify_event) + NAME_MAX + 1];
+        bool changed = false;
+        for (;;)
+        {
+            ssize_t len = read(self->inotify_fd, buf, sizeof(buf));
+            if (len <= 0)
+                break; // 没有更多事件
+            // 遍历本次读取到的所有事件
+            for (char *ptr = buf; ptr < buf + len; )
+            {
+                struct inotify_event *ev = reinterpret_cast<struct inotify_event *>(ptr);
+                // 只关心 .desktop 文件相关事件
+                if (ev->len > 0)
+                {
+                    const char *fname = ev->name;
+                    size_t flen = strlen(fname);
+                    if (flen > 8 && strcmp(fname + flen - 8, ".desktop") == 0)
+                        changed = true;
+                }
+                else
+                {
+                    // 目录级别的事件（无文件名）也视为变化
+                    changed = true;
+                }
+                ptr += sizeof(struct inotify_event) + ev->len;
+            }
+        }
+
+        if (changed)
+        {
+            printf("app_dir_watch_cb: applications dir changed, reloading...\n");
+            self->applications_reload();
+        }
+    }
+
+    ~app_launch_S();
 };
 
 // ============================================================
@@ -339,13 +652,31 @@ app::app(std::string name,
 }
 
 // ============================================================
+// app_launch_S 析构函数实现
+// ============================================================
+app_launch_S::~app_launch_S()
+{
+    if (watch_timer)
+    {
+        lv_timer_delete(watch_timer);
+        watch_timer = nullptr;
+    }
+    if (inotify_fd >= 0)
+    {
+        close(inotify_fd);
+        inotify_fd = -1;
+    }
+}
+
+// ============================================================
 std::unique_ptr<app_launch_S> app_launch_Ser;
 
 extern "C"
 {
+    
     void ui_info_bind()
     {
-        app_launch_Ser = std::make_unique<app_launch_S>();
+        app_launch_Ser = std::make_unique<app_launch_S>();        
     }
     void cpp_app_zuo(lv_obj_t *panel, lv_obj_t *label)
     {

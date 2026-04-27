@@ -5,7 +5,8 @@
 
 #include "ui.h"
 #include "ui_helpers.h"
-
+#include <stdio.h>
+#include <sys/stat.h>
 ///////////////////// VARIABLES ////////////////////
 
 
@@ -25,36 +26,36 @@
 
 // CUSTOM VARIABLES
 int Animation_time = 200;
-const char *ui_img_zero_png = "A:/dist/images/zero.png";
-const char *ui_img_time_png = "A:/dist/images/time.png";
-const char *ui_img_zuo_png = "A:/dist/images/zuo.png";
-const char *ui_img_you_png = "A:/dist/images/you.png";
+const char *ui_img_zero_png = "share/images/zero.png";
+const char *ui_img_time_png = "share/images/time.png";
+const char *ui_img_zuo_png = "share/images/zuo.png";
+const char *ui_img_you_png = "share/images/you.png";
 
 
 
-const char *ui_img_store_logo_png = "A:/dist/images/Store_logo.png";
-const char *ui_img_cli_logo_png = "A:/dist/images/CLI_logo.png";
-const char *ui_img_claw_logo_png = "A:/dist/images/CLAW_logo.png";
-const char *ui_img_setting_logo_png = "A:/dist/images/SETTING_logo.png";
-const char *ui_img_python_logo_png = "A:/dist/images/PYTHON_logo.png";
+const char *ui_img_store_logo_png ;
+const char *ui_img_cli_logo_png;
+const char *ui_img_claw_logo_png ;
+const char *ui_img_setting_logo_png ;
+const char *ui_img_python_logo_png ;
 
 
 
-const char *ui_img_zero_logo_w_png = "A:/dist/images/zero_logo_w.png";
-const char *ui_img_zuo_logo_png = "A:/dist/images/zuo_logo.png";
-const char *ui_img_you_logo_png = "A:/dist/images/you_logo.png";
-const char *ui_img_detail_info_png = "A:/dist/images/detail_info.png";
-const char *ui_img_down_logo_png = "A:/dist/images/down_logo.png";
-const char *ui_img_up_logo_png = "A:/dist/images/up_logo.png";
-const char *ui_img_camera_png = "A:/dist/images/camera.png";
+const char *ui_img_zero_logo_w_png = "share/images/zero_logo_w.png";
+const char *ui_img_zuo_logo_png = "share/images/zuo_logo.png";
+const char *ui_img_you_logo_png = "share/images/you_logo.png";
+const char *ui_img_detail_info_png = "share/images/detail_info.png";
+const char *ui_img_down_logo_png = "share/images/down_logo.png";
+const char *ui_img_up_logo_png = "share/images/up_logo.png";
+const char *ui_img_camera_png = "share/images/camera.png";
 
 
 
 
 
 
-const char * font_path = "./dist/images/AlibabaPuHuiTi-3-55-Regular.ttf";
-const char * mono_font_path = "./dist/images/LiberationMono-Regular.ttf";
+const char * font_path = "/usr/share/APPLaunch/share/font/AlibabaPuHuiTi-3-55-Regular.ttf";
+const char * mono_font_path = "/usr/share/APPLaunch/share/font/LiberationMono-Regular.ttf";
 
 
 
