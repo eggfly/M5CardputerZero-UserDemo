@@ -497,6 +497,7 @@ private:
         switch (key)
         {
         case KEY_UP:
+        case KEY_F:
             if (selected_idx_ > 0)
             {
                 --selected_idx_;
@@ -505,6 +506,7 @@ private:
             break;
 
         case KEY_DOWN:
+        case KEY_X:
             if (selected_idx_ < count - 1)
             {
                 ++selected_idx_;
@@ -514,6 +516,7 @@ private:
 
         case KEY_ENTER:
         case KEY_RIGHT:
+        case KEY_C:
             open_sub_page(selected_idx_);
             break;
 
@@ -545,11 +548,13 @@ private:
         switch (key)
         {
         case KEY_UP:
+        case KEY_F:
             if (content)
                 lv_obj_scroll_by(content, 0, -20, LV_ANIM_ON);
             break;
 
         case KEY_DOWN:
+        case KEY_X:
             if (content)
                 lv_obj_scroll_by(content, 0, 20, LV_ANIM_ON);
             break;

@@ -296,7 +296,7 @@ void go_back_home(lv_event_t * e)
 
 
 #define UI_DEFINE_UI_EVENT_FUN(event_fun, call_fun) void event_fun(lv_event_t * e) { \
-    if(IS_KEY_RELEASED(e)) { \
+    if(IS_KEY_PRESSED(e)) { \
         call_fun(e); \
     } \
 }
