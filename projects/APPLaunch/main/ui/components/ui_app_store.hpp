@@ -9,7 +9,7 @@
 #include <fstream>
 #include <dirent.h>
 #include <sys/stat.h>
-#include <linux/input.h>
+#include "compat/input_keys.h"
 #include <nlohmann/json.hpp>
 struct store_app_info
 {

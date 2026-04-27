@@ -1,7 +1,7 @@
 #include "ui.h"
 #include <stdio.h>
 #include <string.h>
-#include <linux/input.h>
+#include "compat/input_keys.h"
 
 typedef void (*switch_cb_t)(lv_event_t *);
 struct lv_timer_data_t

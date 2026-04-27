@@ -1,4 +1,5 @@
 import os
+import platform
 
 Import('env')
 with open(env['PROJECT_TOOL_S']) as f:
@@ -7,13 +8,29 @@ with open(env['PROJECT_TOOL_S']) as f:
 SRCS = Glob('src/*.c*')
 INCLUDE = [ADir('.'), ADir('include')]
 PRIVATE_INCLUDE = []
-REQUIREMENTS = ['lvgl_component', 'pthread', 'input', 'xkbcommon', 'udev']
+
+is_desktop_sdl = (platform.system() == 'Darwin') or ('CONFIG_V9_5_LV_USE_SDL' in os.environ)
+
+if is_desktop_sdl:
+    REQUIREMENTS = ['lvgl_component', 'pthread']
+else:
+    REQUIREMENTS = ['lvgl_component', 'pthread', 'input', 'xkbcommon', 'udev']
+
 STATIC_LIB = []
 DYNAMIC_LIB = []
-DEFINITIONS = [] #'-std=c++20'
+DEFINITIONS = []
 DEFINITIONS_PRIVATE = []
 LDFLAGS = []
 LINK_SEARCH_PATH = []
+if is_desktop_sdl and platform.system() == 'Darwin':
+    import subprocess
+    try:
+        ft_ldflags = subprocess.check_output(
+            ['pkg-config', '--libs', 'freetype2'], text=True
+        ).strip()
+        LDFLAGS += ft_ldflags.split()
+    except Exception:
+        LDFLAGS += ['-L/opt/homebrew/lib', '-lfreetype']
 STATIC_FILES = []
 
 
@@ -22,14 +39,35 @@ SRCS += append_srcs_dir(ADir('ui'))
 
 lvgl_component = list(filter(lambda x: x['target'] == 'lvgl_component', env['COMPONENTS']))[0]
 
-if 'CONFIG_V9_5_LV_USE_SDL' in os.environ:
+if is_desktop_sdl:
     lvgl_component['REQUIREMENTS'] += ['SDL2']
-    lvgl_component['INCLUDE'] += ['/usr/include/SDL2']
+    if platform.system() == 'Darwin':
+        import subprocess
+        try:
+            sdl2_cflags = subprocess.check_output(
+                ['pkg-config', '--cflags', 'sdl2'], text=True
+            ).strip()
+            sdl2_inc_dirs = [f.replace('-I', '') for f in sdl2_cflags.split() if f.startswith('-I')]
+            lvgl_component['INCLUDE'] += sdl2_inc_dirs
+        except Exception:
+            lvgl_component['INCLUDE'] += ['/opt/homebrew/include/SDL2']
+    else:
+        lvgl_component['INCLUDE'] += ['/usr/include/SDL2']
     lvgl_component['DEFINITIONS'] += ['-D_REENTRANT']
 
-# # 添加 freetype 支持
-lvgl_component['REQUIREMENTS'] += ['freetype']
-lvgl_component['INCLUDE'] += ['/usr/include/freetype2', '/usr/include/libpng16']
+if is_desktop_sdl and platform.system() == 'Darwin':
+    import subprocess
+    try:
+        ft_cflags = subprocess.check_output(
+            ['pkg-config', '--cflags', 'freetype2'], text=True
+        ).strip()
+        ft_inc_dirs = [f.replace('-I', '') for f in ft_cflags.split() if f.startswith('-I')]
+        lvgl_component['INCLUDE'] += ft_inc_dirs
+    except Exception:
+        lvgl_component['INCLUDE'] += ['/opt/homebrew/include/freetype2']
+else:
+    lvgl_component['REQUIREMENTS'] += ['freetype']
+    lvgl_component['INCLUDE'] += ['/usr/include/freetype2', '/usr/include/libpng16']
 
 for src in lvgl_component['SRCS']:
     if 'lv_sdl_keyboard.c' in str(src):

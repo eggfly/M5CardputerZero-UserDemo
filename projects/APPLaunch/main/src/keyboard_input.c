@@ -6,15 +6,21 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#ifdef __linux__
 #include <poll.h>
 #include <locale.h>
+#endif
 #include <stdbool.h>
 #include <stdint.h>
+#ifdef __linux__
 #include <sys/timerfd.h>
 #include <linux/input.h>
 #include <libinput.h>
 #include <xkbcommon/xkbcommon.h>
 #include <xkbcommon/xkbcommon-compose.h>
+#else
+#include "compat/input_keys.h"
+#endif
 #include "keyboard_input.h"
 #include "lvgl/lvgl.h"
 
