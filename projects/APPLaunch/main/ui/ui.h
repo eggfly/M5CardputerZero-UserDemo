@@ -21,6 +21,7 @@ extern "C" {
 
 #define lv_mem_alloc lv_malloc
 #define lv_mem_free   lv_free
+#define lv_event_send(obj, evt, param) lv_obj_send_event(obj, evt, param)
 
 // typedef void (*ui_anim_ready_cb_t)(lv_anim_t * a);
 typedef void (*ui_anim_ready_cb_t)(lv_anim_t *);
