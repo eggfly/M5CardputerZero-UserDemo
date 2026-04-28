@@ -8,7 +8,6 @@
 #include "ui_comp.h"
 
 uint32_t LV_EVENT_GET_COMP_CHILD;
-uint32_t LV_EVENT_KEYBOARD;
 
 typedef struct {
     uint32_t child_idx;
