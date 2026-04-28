@@ -604,6 +604,56 @@ out:
 #else
 
 #include "ui/ui.h"
+#include "compat/input_keys.h"
+
+/* SDL scancode → Linux keycode mapping for key_item.key_code */
+static uint32_t sdl_scancode_to_linux_keycode(uint32_t sc)
+{
+    switch(sc) {
+        case 4:  return KEY_A;    case 5:  return KEY_B;
+        case 6:  return KEY_C;    case 7:  return KEY_D;
+        case 8:  return KEY_E;    case 9:  return KEY_F;
+        case 10: return KEY_G;    case 11: return KEY_H;
+        case 12: return KEY_I;    case 13: return KEY_J;
+        case 14: return KEY_K;    case 15: return KEY_L;
+        case 16: return KEY_M;    case 17: return KEY_N;
+        case 18: return KEY_O;    case 19: return KEY_P;
+        case 20: return KEY_Q;    case 21: return KEY_R;
+        case 22: return KEY_S;    case 23: return KEY_T;
+        case 24: return KEY_U;    case 25: return KEY_V;
+        case 26: return KEY_W;    case 27: return KEY_X;
+        case 28: return KEY_Y;    case 29: return KEY_Z;
+        case 30: return KEY_1;    case 31: return KEY_2;
+        case 32: return KEY_3;    case 33: return KEY_4;
+        case 34: return KEY_5;    case 35: return KEY_6;
+        case 36: return KEY_7;    case 37: return KEY_8;
+        case 38: return KEY_9;    case 39: return KEY_0;
+        case 40: return KEY_ENTER;
+        case 41: return KEY_ESC;
+        case 42: return KEY_BACKSPACE;
+        case 43: return KEY_TAB;
+        case 44: return KEY_SPACE;
+        case 79: return KEY_RIGHT;
+        case 80: return KEY_LEFT;
+        case 81: return KEY_DOWN;
+        case 82: return KEY_UP;
+        case 76: return KEY_DELETE;
+        case 74: return KEY_HOME;
+        case 77: return KEY_END;
+        case 75: return KEY_PAGEUP;
+        case 78: return KEY_PAGEDOWN;
+        case 225: return KEY_LEFTSHIFT;
+        case 224: return KEY_LEFTCTRL;
+        case 226: return KEY_LEFTALT;
+        case 58: return KEY_F1;   case 59: return KEY_F2;
+        case 60: return KEY_F3;   case 61: return KEY_F4;
+        case 62: return KEY_F5;   case 63: return KEY_F6;
+        case 64: return KEY_F7;   case 65: return KEY_F8;
+        case 66: return KEY_F9;   case 67: return KEY_F10;
+        case 68: return KEY_F11;  case 69: return KEY_F12;
+        default: return sc;
+    }
+}
 
 #include "lvgl/src/drivers/sdl/lv_sdl_keyboard.h"
 #include "lvgl/src/core/lv_group.h"
@@ -830,8 +880,8 @@ void lv_sdl_keyboard_handler(SDL_Event * event)
             SDL_Scancode  sc  = event->key.keysym.scancode;
             Uint16        md  = event->key.keysym.mod;
 
-            /* 填充本次事件元信息 */
-            dsc->cur_scancode = (uint32_t)sc;
+            /* 填充本次事件元信息 — convert SDL scancode to Linux keycode */
+            dsc->cur_scancode = sdl_scancode_to_linux_keycode(sc);
             dsc->cur_keysym   = (uint32_t)sym;
             dsc->cur_mods     = 0;
             if(md & KMOD_SHIFT) dsc->cur_mods |= KBD_MOD_SHIFT;

@@ -311,23 +311,18 @@ void main_key_switch(lv_event_t *e)
         switch (elm->key_code)
         {
         case KEY_UP:
-            // printf("按下: UP\r\n");
             break;
         case KEY_DOWN:
-            // printf("按下: DOWN\r\n");
             break;
         case KEY_LEFT:
         case KEY_Z:
-            // printf("按下: LEFT\r\n");
             switchyou(NULL);
             break;
         case KEY_RIGHT:
         case KEY_C:
-            // printf("按下: RIGHT\r\n");
             switchzuo(NULL);
             break;
         default:
-            // printf("按下: %d\r\n", key);
             break;
         }
     }
