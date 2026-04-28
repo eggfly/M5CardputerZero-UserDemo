@@ -6,7 +6,9 @@
 #include <iostream>
 #include <dirent.h>
 #include <sys/stat.h>
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
 #include <signal.h>
 #include <unistd.h>
 #include <libgen.h>

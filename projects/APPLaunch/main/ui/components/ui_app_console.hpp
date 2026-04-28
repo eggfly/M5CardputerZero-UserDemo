@@ -3,10 +3,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
 #include <fcntl.h>
 #include "compat/fb_compat.h"
+#ifndef _WIN32
 #include <sys/ioctl.h>
+#endif
 #include <unordered_map>
 #include <list>
 #include <memory>
@@ -16,10 +20,12 @@
 #include <signal.h>
 #ifdef __APPLE__
 #include <util.h>
-#else
+#elif !defined(_WIN32)
 #include <pty.h>
 #endif
+#ifndef _WIN32
 #include <termios.h>
+#endif
 #include <errno.h>
 #include <vector>
 #include <sstream>

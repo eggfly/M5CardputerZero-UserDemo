@@ -5,9 +5,15 @@
 #include <vector>
 #include <functional>
 #include <algorithm>
+#ifndef _WIN32
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#else
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#endif
 
 // ============================================================
 //  IP面板界面  UIIpPanelPage

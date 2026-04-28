@@ -4,15 +4,23 @@
 #include <unistd.h>
 #include <fcntl.h>
 #ifdef __linux__
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
 #include <linux/fb.h>
+#ifndef _WIN32
 #include <sys/ioctl.h>
+#endif
 #include <dirent.h>
 #include <sys/inotify.h>
 #else
 // macOS/Windows stubs
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
+#ifndef _WIN32
 #include <sys/ioctl.h>
+#endif
 #include <dirent.h>
 #define IN_NONBLOCK    0
 #define IN_CREATE      0x00000100
